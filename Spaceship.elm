@@ -33,7 +33,7 @@ type alias Shot =
 
 
 type alias Ship =
-    GameObject { health : Int }
+    GameObject { health : Int, targetPosition : Vector2 }
 
 
 type alias Model =
@@ -45,7 +45,7 @@ type alias Model =
 
 initialShip : Model
 initialShip =
-    { player = { position = zero2, speed = zero2, health = 100 }
+    { player = { position = zero2, speed = zero2, health = 100, targetPosition = zero2 }
     , shots = []
     , windowSize = ( 400, 400 )
     }
@@ -121,11 +121,33 @@ addVector2 : Vector2 -> Vector2 -> Vector2
 addVector2 v1 v2 =
     { x = v1.x + v2.x, y = v1.y + v2.y }
 
+diffVector2 : Vector2 -> Vector2 -> Vector2
+diffVector2 v1 v2 =
+    { x = v1.x - v2.x, y = v1.y - v2.y }
 
-animate : GameObject a -> GameObject a
-animate o =
-    { o | position = addVector2 o.position o.speed }
+multiplyVector2 : Float -> Vector2 -> Vector2
+multiplyVector2 scalar v =
+    { x = scalar * v.x, y = scalar * v.y}
+ 
+gravity : Vector2
+gravity = {x=0, y=1}
 
+animateWithGravity : GameObject a -> GameObject a
+animateWithGravity o =
+    { o | position = addVector2 o.position o.speed, speed = addVector2 o.speed gravity }
+
+animatePlayer : Ship -> Ship
+animatePlayer o =
+    let
+        s = multiplyVector2 0.1 (diffVector2 o.targetPosition o.position)
+        speed = { x=s.x, y=0 }
+    in 
+        { o | position = addVector2 o.position speed, speed = speed }
+
+outOfBounds : (Int, Int) -> GameObject a -> Bool
+outOfBounds (width, height) o =
+    o.position.y < toFloat height
+        
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -136,7 +158,7 @@ update msg model =
                     model.shots
 
                 newShot =
-                    { position = model.player.position, speed = { x = 0, y = -1 }, lifetime = 100 }
+                    { position = model.player.position, speed = { x = model.player.speed.x, y = -30 }, lifetime = 100 }
             in
                 ( { model | shots = newShot :: shots }, Cmd.none )
 
@@ -148,10 +170,13 @@ update msg model =
                 position =
                     { x = toFloat pos.x, y = player.position.y }
             in
-                ( { model | player = { player | position = position } }, Cmd.none )
+                ( { model | player = { player | targetPosition = position } }, Cmd.none )
 
         Tick ->
-            ( { model | shots = List.map animate model.shots }, Cmd.none )
+            ( { model | player = animatePlayer model.player,
+                        shots = model.shots 
+                                |> List.map animateWithGravity 
+                                |> List.filter (outOfBounds model.windowSize)}, Cmd.none )
 
         WindowSizeChanged size ->
             let
