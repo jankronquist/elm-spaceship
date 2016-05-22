@@ -117,16 +117,16 @@ type Msg
     | Error ()
 
 
-addVector2 : Vector2 -> Vector2 -> Vector2
-addVector2 v1 v2 =
+(+++) : Vector2 -> Vector2 -> Vector2
+(+++) v1 v2 =
     { x = v1.x + v2.x, y = v1.y + v2.y }
 
-diffVector2 : Vector2 -> Vector2 -> Vector2
-diffVector2 v1 v2 =
+(:---) : Vector2 -> Vector2 -> Vector2
+(:---) v1 v2 =
     { x = v1.x - v2.x, y = v1.y - v2.y }
 
-multiplyVector2 : Float -> Vector2 -> Vector2
-multiplyVector2 scalar v =
+(***) : Float -> Vector2 -> Vector2
+(***) scalar v =
     { x = scalar * v.x, y = scalar * v.y}
  
 gravity : Vector2
@@ -134,15 +134,15 @@ gravity = {x=0, y=1}
 
 animateWithGravity : GameObject a -> GameObject a
 animateWithGravity o =
-    { o | position = addVector2 o.position o.speed, speed = addVector2 o.speed gravity }
+    { o | position = o.position +++ o.speed, speed = o.speed +++ gravity }
 
 animatePlayer : Ship -> Ship
 animatePlayer o =
     let
-        s = multiplyVector2 0.1 (diffVector2 o.targetPosition o.position)
+        s = 0.1 *** (o.targetPosition :--- o.position)
         speed = { x=s.x, y=0 }
     in 
-        { o | position = addVector2 o.position speed, speed = speed }
+        { o | position = o.position +++ speed, speed = speed }
 
 outOfBounds : (Int, Int) -> GameObject a -> Bool
 outOfBounds (width, height) o =
